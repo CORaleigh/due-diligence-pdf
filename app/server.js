@@ -74,7 +74,10 @@ request.post("http://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/D
   			bold: true,
   			fontSize: 13,
   			color: 'black'
-  		}
+  		},
+      link: {
+        margin: [15, 0, 0, 0]
+      }
     }
     };
     console.log(feature);
@@ -107,7 +110,11 @@ request.post("http://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/D
     table.table.body.push([{text: "What are the zoning codes for this site?", style: "question"}, {text: feature.attributes.planning1 ? feature.attributes.planning1 : ""}]);
     table.table.body.push([{text: "Are there zoning conditions?", style: "question"}, {text: feature.attributes.planning2 ? feature.attributes.planning2 : ""}]);
     table.table.body.push([{text: "Are there zoning overlays?", style: "question"}, {text: feature.attributes.planning3 ? feature.attributes.planning3 : ""}]);
-    table.table.body.push([{text: "What is the frontage?", style: "question"}, {text: feature.attributes.planning4 ? feature.attributes.planning4 : ""}]);
+    if (feature.attributes.planning1 && feature.attributes.planning1 != "N/A") {
+      table.table.body.push([{text: "What is the frontage?", style: "question"}, {text: [{text: feature.attributes.planning4 ? feature.attributes.planning4 : ""}, {text: "Link", link: "https://www.raleighnc.gov/content/extra/Books/PlanDev/UnifiedDevelopmentOrdinance/#70", decoration:"underline", color: "blue", style: "link"}]}]);
+    } else {
+      table.table.body.push([{text: "What is the frontage?", style: "question"}, {text: feature.attributes.planning4 ? feature.attributes.planning4 : ""}]);
+    }
     table.table.body.push([{text: "Max building height (stories)", style: "question"}, {text: feature.attributes.planning5 ? feature.attributes.planning5 : ""}]);
     table.table.body.push([{text: "Max density (units/acres)", style: "question"}, {text: feature.attributes.planning6 ? feature.attributes.planning6 : ""}]);
     table.table.body.push([{text: "Allowable Building Types", style: "question"}, {text: feature.attributes.planning7 ? feature.attributes.planning7 : ""}]);
