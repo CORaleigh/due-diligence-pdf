@@ -42,14 +42,20 @@ var sendEmail = function (file, email) {
 };
 var buildPlanningTable = function (atts) {
   var table = {style: 'tableExample', table: {widths: [ '*', '*' ], body:[]}};
-  table.table.body.push([{text: "What are the zoning codes for this site?", style: "question"}, {text: atts.planning1 ? atts.planning1 : ""}]);
+  table.table.body.push([{text: "What are the zoning codes for this site?", style: "question"}, {text: atts.planning1 ? atts.planning1.replace(/,/g, ', ') : ""}]);
   table.table.body.push([{text: "Are there zoning conditions?", style: "question"}, {text: atts.planning2 ? atts.planning2 : ""}]);
   table.table.body.push([{text: "Are there zoning overlays?", style: "question"}, {text: atts.planning3 ? atts.planning3 : ""}]);
-  if (atts.planning1 && atts.planning1 != "N/A") {
+  if (atts.planning3 && atts.planning3 != "N/A") {
+    table.table.body.push([{text: "Are there zoning overlays?", style: "question"}, {text: [{text: atts.planning3 ? atts.planning3 : ""}, {text: "Link", link: "https://www.raleighnc.gov/content/extra/Books/PlanDev/UnifiedDevelopmentOrdinance/#106", decoration:"underline", color: "blue", style: "link"}]}]);
+  } else {
+    table.table.body.push([{text: "Are there zoning overlays?", style: "question"}, {text: atts.planning3 ? atts.planning3 : ""}]);
+  }
+  if (atts.planning4 && atts.planning4 != "N/A") {
     table.table.body.push([{text: "What is the frontage?", style: "question"}, {text: [{text: atts.planning4 ? atts.planning4 : ""}, {text: "Link", link: "https://www.raleighnc.gov/content/extra/Books/PlanDev/UnifiedDevelopmentOrdinance/#70", decoration:"underline", color: "blue", style: "link"}]}]);
   } else {
     table.table.body.push([{text: "What is the frontage?", style: "question"}, {text: atts.planning4 ? atts.planning4 : ""}]);
   }
+  table.table.body.push([{text: "Permitted Uses", style: "question"}, {text: "Link", link: "https://www.raleighnc.gov/content/extra/Books/PlanDev/UnifiedDevelopmentOrdinance/#134", decoration: "underline", color: "blue"}]);
   table.table.body.push([{text: "Max building height (stories)", style: "question"}, {text: atts.planning5 ? atts.planning5 : ""}]);
   table.table.body.push([{text: "Max density (units/acres)", style: "question"}, {text: atts.planning6 ? atts.planning6 : ""}]);
   table.table.body.push([{text: "Allowable Building Types", style: "question"}, {text: atts.planning7 ? atts.planning7 : ""}]);
@@ -138,7 +144,6 @@ var buildTransportationTable = function (atts) {
   return table;
 };
 var buildPdf = function (dd, oid, email) {
-  console.log(dd);
   var pdfDoc = printer.createPdfKitDocument(dd);
   pdfDoc.pipe(fs.createWriteStream(oid + '.pdf')).on('finish',function(){
     var file = oid + '.pdf';
