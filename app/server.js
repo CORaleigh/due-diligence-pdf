@@ -231,4 +231,4 @@ var retreivedFeatures = function (error, response, body) {
   console.log(data.features.length);
   data.features.forEach(handleFeature);
 };
-request.post("http://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence/FeatureServer/0/query", {form: {f: 'json', outFields: '*', where: 'Status = 1 and emailSent = 0', returnGeometry: 'false'}}, retreivedFeatures);
+request.post("http://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence/FeatureServer/0/query", {form: {f: 'json', outFields: '*', where: 'Status = 1 and emailSent = 1', returnGeometry: 'false'}}, retreivedFeatures);
