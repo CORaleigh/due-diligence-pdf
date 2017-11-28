@@ -19,10 +19,11 @@ var sendAttachment = function (url, file) {
   });
   var form = r.form();
   form.append('f', 'json');
+  form.append('token', token);
   form.append('attachment', rs);
 };
 var updateEmailSent = function (url, objectid) {
-  request.post(url, {form: {f: 'json', features: JSON.stringify([{attributes: {OBJECTID: objectid, emailSent: 0}}])}},function (err, resp, body) {
+  request.post(url, {form: {token: token, f: 'json', features: JSON.stringify([{attributes: {OBJECTID: objectid, emailSent: 0}}])}},function (err, resp, body) {
   });
 };
 var sendEmail = function (file, email) {
@@ -58,7 +59,15 @@ var buildPlanningTable = function (atts) {
   table.table.body.push([{text: "Permitted Uses", style: "question"}, {text: "Link", link: "https://www.raleighnc.gov/content/extra/Books/PlanDev/UnifiedDevelopmentOrdinance/#134", decoration: "underline", color: "blue"}]);
   table.table.body.push([{text: "Max building height (stories)", style: "question"}, {text: atts.planning5 ? atts.planning5 : ""}]);
   table.table.body.push([{text: "Max density (units/acres)", style: "question"}, {text: atts.planning6 ? atts.planning6 : ""}]);
-  table.table.body.push([{text: "Allowable Building Types", style: "question"}, {text: atts.planning7 ? atts.planning7 : ""}]);
+  var buildingFields = ["planning7b", "planning7c", "planning7d", "planning7e", "planning7f", "planning7g", "planning7h", "planning7i"];
+  var buildingField = "";
+  var buildingValues = [];
+  for (var i = 0;i < atts.planning7a;i++) {
+    buildingField = buildingFields[i];
+    buildingValues.push(atts[buildingField]);
+  }
+  table.table.body.push([{text: "Allowable Building Types", style: "question"}, {text: buildingValues.toString()}]);
+
   table.table.body.push([{text: "Additional Comments", style: "question"}, {text: atts.planning8 ? atts.planning8 : ""}]);
   return table;
 };
@@ -143,13 +152,18 @@ var buildTransportationTable = function (atts) {
   table.table.body.push([{text: "Additional Transportation Comments", style: "question"}, {text: atts.trans6 ? atts.trans6 : ""}]);
   return table;
 };
+var buildFireInfo = function (dd) {
+  dd.content.push({text: "Fire", style: "header"});  
+  dd.content.push({text: ["Development of the mentioned property shall be in accordance with the current adopted version of the North Carolina Fire Prevention Code and applicable referenced standards.  This shall also include all appropriate Standard Details from the ", {text: "City of Raleigh website", link: "https://www.raleighnc.gov/business/content/PlanDev/Articles/DevServ/DrawingsStandardDetailsIndex.html", decoration:"underline", color: "blue", style: "link"}, " -  , and the ", {text: "City of Raleigh Public Utilities Handbook 2014 Edition", link: "https://www.raleighnc.gov/content/PubUtilAdmin/Documents/PublicUtilitiesHandbook.pdf", decoration:"underline", color: "blue", style: "link"}, ".  All specific details shall be provided in accordance with the North Carolina Fire Code, Section 503, Fire Service Features, but not limited to fire department turn-arounds, hose lengths, and needed hydrant flow analysis.  Including all required information will assist the Raleigh Fire Plans Review Team in expediting your information.  All alternative means and methods as well as any performance based designs shall require the approval of the Assistant Fire Marshal.  Should you have any specific questions, please feel free to contact any one of our Deputy Fire Marshal, Senior Plans Examiner located at One Exchange Plaza."]});  
+  
+}
 var buildPdf = function (dd, oid, email) {
   var pdfDoc = printer.createPdfKitDocument(dd);
   pdfDoc.pipe(fs.createWriteStream(oid + '.pdf')).on('finish',function(){
     var file = oid + '.pdf';
-    var url ='https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence/FeatureServer/0/' + oid + '/addAttachment';
+    var url ='https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence_Service/FeatureServer/0/' + oid + '/addAttachment';
     sendAttachment(url, file);
-    url = "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence/FeatureServer/0/updateFeatures";
+    url = "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence_Service/FeatureServer/0/updateFeatures";
     updateEmailSent(url, oid);
     sendEmail(file, email);
   });
@@ -157,7 +171,10 @@ var buildPdf = function (dd, oid, email) {
 };
 var getDocBase = function () {
   var dd = {
-  content: [],
+  content: [		{
+    image: 'ExpressReviewHeader.jpg',
+    width: 510
+  }],
   styles: {
     header: {
       fontSize: 22,
@@ -204,7 +221,17 @@ var getDomainValues = function (fields, feature) {
 var handleFeature = function (feature) {
   var dd = getDocBase();
   console.log(feature);
-  feature = getDomainValues(data.fields, feature)
+  feature = getDomainValues(data.fields, feature);
+  dd.content.push({text: " "});
+  if (feature.attributes.address.split(",").length > 1) {
+    dd.content.push({text: "Thank you for your application to our Due Diligence Service (DDS) for the following properties:"});  
+  } else {
+    dd.content.push({text: "Thank you for your application to our Due Diligence Service (DDS) for the following property:"});      
+  }
+  dd.content.push({text: feature.attributes.address.replace(/,/g, ', ')});  
+  dd.content.push({text: " "});  
+  dd.content.push({text: ["Please find attached a compilation of staff comments from multi-disciplinary review trades.  Please note these comments are not associated with a formal submittal and review, and should be considered advisory-only.  Upon submitting a formal development application, if any development details or site information have changed, it is possible that staff comments may be different from those provided by a DDS.  Should you have additional questions, feel free to contact the staff member listed by each comment section.  Questions related to next steps, and process details feel free to visit the webpage at ", {text: "Raleighnc.gov", link: "https://www.raleighnc.gov", decoration:"underline", color: "blue", style: "link"},   " or email us at ",  {text: "DS.Help@raleighnc.gov", link: "mailto:DS.Help@raleighnc.gov?subject=Due%20Diligence%20Service%20Support", decoration:"underline", color: "blue", style: "link"}, "."]});
+  dd.content.push({text: " "});  
   dd.content.push({text: "Information", style: "header"});
   var table = {style: 'tableExample', table: {widths: [ '*', '*' ], body:[]}};
   table.table.body.push([{text: "Prepared For"}, {text: feature.attributes.contact}]);
@@ -228,12 +255,23 @@ var handleFeature = function (feature) {
   dd.content.push({text: "Street Frontages", style: "subheader"});
   dd.content.push(buildFrontagesTable(feature.attributes));
   dd.content.push(buildTransportationTable(feature.attributes));
-  buildPdf(dd, feature.attributes.OBJECTID, feature.attributes.email);
+  buildFireInfo(dd);
+  var date = new Date();
+  var dateText = new Date(feature.attributes.CreationDate).toISOString().replace(/-/g, '').replace('T', '').replace(/:/g, '');
+  dateText = dateText.split(".")[0];
+  buildPdf(dd, "due_diligence_service_" + dateText, feature.attributes.email);
 };
 var retreivedFeatures = function (error, response, body) {
   data = body;
   data = JSON.parse(data);
+  console.log(body);
   console.log(data.features.length);
   data.features.forEach(handleFeature);
 };
-request.post("http://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence/FeatureServer/0/query", {form: {f: 'json', outFields: '*', where: 'Status = 1 and emailSent = 1', returnGeometry: 'false'}}, retreivedFeatures);
+var token = '';
+request.post("https://ral.maps.arcgis.com/sharing/rest/generateToken", {form: {referer: 'https://maps.raleighnc.gov/arcgis/rest',username: 'RaleighGIS',password: 'corGIS!',f: 'json'}}, function (error, response, body) {
+  data = JSON.parse(body);
+  token = data.token;
+  console.log(token);
+  request.post("http://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence_Service/FeatureServer/0/query", {form: {token: token, f: 'json', outFields: '*', where: 'emailSent = 1 and Status = 2', returnGeometry: 'false'}}, retreivedFeatures);
+});
