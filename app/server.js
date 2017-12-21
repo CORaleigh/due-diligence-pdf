@@ -36,7 +36,8 @@ var sendEmail = function (file, email, emailBody) {
     transporter.sendMail({
         from: 'ExpressCoordinator@Raleighnc.gov',
         to: email,
-        subject: 'Due Diligence',
+        subject: 'Due Diligence Service',
+        cc: 'gis@raleighnc.gov',
         html: emailBody,
         attachments: [{'filename': file, 'path': './' + file, contentType: 'application/pdf'}]
     });
