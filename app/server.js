@@ -24,19 +24,20 @@ var sendAttachment = function (url, file) {
 };
 var updateEmailSent = function (url, objectid) {
   request.post(url, {form: {token: token, f: 'json', features: JSON.stringify([{attributes: {OBJECTID: objectid, emailSent: 0}}])}},function (err, resp, body) {
+    console.log(body);
   });
 };
-var sendEmail = function (file, email) {
+var sendEmail = function (file, email, emailBody) {
   var transporter = mailer.createTransport(smtpTransport({
      host: 'cormailgw2.raleighnc.gov',
      port: 25
   }));
   fs.readFile(file, function (err, data) {
     transporter.sendMail({
-        from: 'gis@raleighnc.gov',
+        from: 'ExpressCoordinator@Raleighnc.gov',
         to: email,
         subject: 'Due Diligence',
-        text: 'The attached PDF details your recently submitted due diligence request.',
+        html: emailBody,
         attachments: [{'filename': file, 'path': './' + file, contentType: 'application/pdf'}]
     });
   });
@@ -157,15 +158,14 @@ var buildFireInfo = function (dd) {
   dd.content.push({text: ["Development of the mentioned property shall be in accordance with the current adopted version of the North Carolina Fire Prevention Code and applicable referenced standards.  This shall also include all appropriate Standard Details from the ", {text: "City of Raleigh website", link: "https://www.raleighnc.gov/business/content/PlanDev/Articles/DevServ/DrawingsStandardDetailsIndex.html", decoration:"underline", color: "blue", style: "link"}, " -  , and the ", {text: "City of Raleigh Public Utilities Handbook 2014 Edition", link: "https://www.raleighnc.gov/content/PubUtilAdmin/Documents/PublicUtilitiesHandbook.pdf", decoration:"underline", color: "blue", style: "link"}, ".  All specific details shall be provided in accordance with the North Carolina Fire Code, Section 503, Fire Service Features, but not limited to fire department turn-arounds, hose lengths, and needed hydrant flow analysis.  Including all required information will assist the Raleigh Fire Plans Review Team in expediting your information.  All alternative means and methods as well as any performance based designs shall require the approval of the Assistant Fire Marshal.  Should you have any specific questions, please feel free to contact any one of our Deputy Fire Marshal, Senior Plans Examiner located at One Exchange Plaza."]});  
   
 }
-var buildPdf = function (dd, oid, email) {
+var buildPdf = function (dd, file, email, oid, emailBody) {
   var pdfDoc = printer.createPdfKitDocument(dd);
   pdfDoc.pipe(fs.createWriteStream(oid + '.pdf')).on('finish',function(){
-    var file = oid + '.pdf';
     var url ='https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence_Service/FeatureServer/0/' + oid + '/addAttachment';
     sendAttachment(url, file);
     url = "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence_Service/FeatureServer/0/updateFeatures";
     updateEmailSent(url, oid);
-    sendEmail(file, email);
+    sendEmail(file, email, emailBody);
   });
   pdfDoc.end();
 };
@@ -218,6 +218,18 @@ var getDomainValues = function (fields, feature) {
   });
   return feature;
 };
+
+var createEmailBody = function (feature) {
+  var body = "<p>Dear " + feature.attributes.contact + ",</p>";
+  if (feature.attributes.address.split(",").length > 1) {
+    body += "<p>Thank you for your application to our Due Diligence Service (DDS) for the following properties: ";
+  } else {
+    body += "<p>Thank you for your application to our Due Diligence Service (DDS) for the following property: ";
+  }
+  body += feature.attributes.address.replace(/,/g, ', ') + "</p>";
+  body += "<p>Please find attached a compilation of staff comments from multi-disciplinary review trades.  Please note these comments are not associated with a formal submittal and review, and should be considered advisory-only.  Upon submitting a formal development application, if any development details or site information have changed, it is possible that staff comments may be different from those provided by a DDS.  Should you have additional questions, feel free to contact the staff member listed by each comment section.  Questions related to next steps, and process details feel free to visit the webpage at <a href='https://www.raleighnc.gov'>Raleighnc.gov</a> or email us at <a href='mailto:ExpressCoordinator@Raleighnc.gov?subject=Due%20Diligence%20Service%20Questions'>ExpressCoordinator@Raleighnc.gov</a></p>";
+  return body;
+};
 var handleFeature = function (feature) {
   var dd = getDocBase();
   console.log(feature);
@@ -230,7 +242,7 @@ var handleFeature = function (feature) {
   }
   dd.content.push({text: feature.attributes.address.replace(/,/g, ', ')});  
   dd.content.push({text: " "});  
-  dd.content.push({text: ["Please find attached a compilation of staff comments from multi-disciplinary review trades.  Please note these comments are not associated with a formal submittal and review, and should be considered advisory-only.  Upon submitting a formal development application, if any development details or site information have changed, it is possible that staff comments may be different from those provided by a DDS.  Should you have additional questions, feel free to contact the staff member listed by each comment section.  Questions related to next steps, and process details feel free to visit the webpage at ", {text: "Raleighnc.gov", link: "https://www.raleighnc.gov", decoration:"underline", color: "blue", style: "link"},   " or email us at ",  {text: "DS.Help@raleighnc.gov", link: "mailto:DS.Help@raleighnc.gov?subject=Due%20Diligence%20Service%20Support", decoration:"underline", color: "blue", style: "link"}, "."]});
+  dd.content.push({text: ["Please find attached a compilation of staff comments from multi-disciplinary review trades.  Please note these comments are not associated with a formal submittal and review, and should be considered advisory-only.  Upon submitting a formal development application, if any development details or site information have changed, it is possible that staff comments may be different from those provided by a DDS.  Should you have additional questions, feel free to contact the staff member listed by each comment section.  Questions related to next steps, and process details feel free to visit the webpage at ", {text: "Raleighnc.gov", link: "https://www.raleighnc.gov", decoration:"underline", color: "blue", style: "link"},   " or email us at ",  {text: "ExpressCoordinator@Raleighnc.gov", link: "mailto:ExpressCoordinator@Raleighnc.gov?subject=Due%20Diligence%20Service%20Questions", decoration:"underline", color: "blue", style: "link"}, "."]});
   dd.content.push({text: " "});  
   dd.content.push({text: "Information", style: "header"});
   var table = {style: 'tableExample', table: {widths: [ '*', '*' ], body:[]}};
@@ -259,7 +271,7 @@ var handleFeature = function (feature) {
   var date = new Date();
   var dateText = new Date(feature.attributes.CreationDate).toISOString().replace(/-/g, '').replace('T', '').replace(/:/g, '');
   dateText = dateText.split(".")[0];
-  buildPdf(dd, "due_diligence_service_" + dateText, feature.attributes.email);
+  buildPdf(dd, "due_diligence_service_" + dateText + ".pdf", feature.attributes.email, feature.attributes.OBJECTID, createEmailBody(feature));
 };
 var retreivedFeatures = function (error, response, body) {
   data = body;
