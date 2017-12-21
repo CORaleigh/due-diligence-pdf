@@ -160,7 +160,7 @@ var buildFireInfo = function (dd) {
 }
 var buildPdf = function (dd, file, email, oid, emailBody) {
   var pdfDoc = printer.createPdfKitDocument(dd);
-  pdfDoc.pipe(fs.createWriteStream(oid + '.pdf')).on('finish',function(){
+  pdfDoc.pipe(fs.createWriteStream(file + '.pdf')).on('finish',function(){
     var url ='https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence_Service/FeatureServer/0/' + oid + '/addAttachment';
     sendAttachment(url, file);
     url = "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Due_Diligence_Service/FeatureServer/0/updateFeatures";
